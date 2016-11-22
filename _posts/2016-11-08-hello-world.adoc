@@ -1,0 +1,49 @@
+---
+layout: post
+title:  "Hello, World"
+date:   2016-11-08
+categories: Hello
+---
+
+= Hello, World! It's been a while :-)
+
+
+After a rather long hiatus, I've decided to resume blogging.
+
+This time around, since we are in 2016, well *almost 2017*, I am trying *new* tech: a static blog generated with Jekyll (https://jekyllrb.com/) and hosted on Github pages (https://pages.github.com/).
+
+It's not really that new, but I am just playing catch-up with the cool kids.
+
+== Why Jekyll?
+
+Since I *mostly* blog about technical work, I've decided to go with Jekyll as it supports Asciidoc (http://www.methods.co.nz/asciidoc/) fairly well.
+
+I also happen to write a lot of work documentation with asciidoctor (http://asciidoctor.org/) so I can write plenty of things like:
+
+[source, scala]
+----
+def helloFromScala: String = "Hello World"
+----
+
+or
+
+[source, haskell]
+----
+import Html exposing (..)
+main =
+  text "Hello"
+----
+
+or
+
+  git clone http://deathstar.git
+
+...and it *should* all render beautifully :-)
+
+== Not just work
+
+But life is not all about work, so hopefully I will write about travelling through South Africa, my attempts at (re) learning the piano, (re) playing the drum kit, learning photography.
+
+And we might even talk about some cool Caribbean recipes (who's heard of sauce chien before: http://andrewzimmern.com/2015/05/18/sauce-chien/ ? )
+
+So stay tune for more.

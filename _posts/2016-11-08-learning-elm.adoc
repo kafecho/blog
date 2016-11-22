@@ -1,0 +1,282 @@
+---
+layout: post
+title:  "Learning Elm"
+date:   2016-11-08
+categories: Elm JavaScript FunctionalProgramming
+disqus: true
+---
+
+Make JS great again?
+
+== A bit of context
+*Disclaimer*: I quite like JavaScript and I think that some of the modern Web APIs (media source extension, web audio api) are really cool, especially when you work in the media domain.
+
+I've written some JavaScript applications (some are used in production in various places), but they all tend to be rather small.
+
+Having worked on a non-trivial Angular.js stack, I have a *gut feeling* that JavaScript does not scale very well with complexity.
+
+This could very well be due to the fact that I am mostly a server-side engineer.
+Having used FP/ typed languages before, I had no issue (or stress) working on large codebases knowing the compiler will do its best to rescue my failing brain.
+I could not say the same about large JS codebases.
+
+I think browsers are cool (they are the ultimate platform for running apps; the Web is ubiquitous after all).
+And some people are really gifted at writing front-end JS code, but I feel that this approach would not work for me.
+
+So in my spare time, as a research experiment, I've been looking at other options.
+
+== Enter Elm
+
+Elm (http://elm-lang.org/) combines a bunch of ideas in one neatly put together package that you can use for building front-end web apps:
+
+* it is a typed functional programming language ( a la Haskell ) that compiles down to JavaScript
+* things in Elm are immutable
+* it implements a virtual DOM which is very fast
+* errors should be detected at compile-time instead of throwing exceptions at runtime
+
+Elm has a very opinionated idea of what a web-app should be architected (this is called the Elm architecture http://guide.elm-lang.org/architecture/ ) and it is roughly based on the following ideas:
+
+* you have an immutable model
+* you render the model via a virtual DOM
+* user inputs or other external events will trigger changes to the model ( i.e. a new model is created from the old one) which will trigger updates to the virtual DOM.
+* and repeat the loop....
+
+In some ways, this is very similar to how React + Redux work (well actually Redux was inspired by Elm).
+
+As a starting point, I recommend reading http://guide.elm-lang.org/ as it gives a good overview of what Elm can do.
+
+== Some examples
+
+=== Hello world
+
+Here is what a Hello world looks like in Elm:
+
+[source, haskell]
+----
+import Html exposing (..)
+
+main =
+  text "Hello, world"
+----
+
+In the simplest case, main is a *function* that creates a virtual DOM (which Elm eventually renders on the screen).
+Instead of writing HTML using the usual tags, you use functions from the *Html* module to create the virtual DOM.
+
+Because you are combining functions, it is trivial to refactor how the DOM is constructed, for example:
+
+=== Refactor the DOM
+
+[source, haskell]
+----
+import Html exposing (..)
+user = "Guillaume"
+main =
+  text ( "Hello " ++ user )
+----
+
+What is nice about this code, is that it is actually compiled, so if you make a minor mistake the compiler will barf at you, for example:
+
+[source, haskell]
+----
+import Html exposing (..)
+usr = "Guillaume"
+main =
+  text ( "Hello " ++ user )
+----
+
+The compiler will warn you with a pretty good error message, showing you what the issue might be:
+
+[source, text]
+----
+Detected errors in 1 module.
+
+-- NAMING ERROR ------------------------------------------------ hello-world.elm
+
+Cannot find variable `user`
+
+4|   text ( "Hello " ++ user )
+                        ^^^^
+Maybe you want one of the following?
+
+    usr
+----
+
+=== More complex constructs
+
+Even when building the virtual DOM, you have access to all the language constructs, so here is how you build a page where the same element appears many times.
+
+[source, haskell]
+----
+import Html exposing (..)
+import List
+
+user = "Guillaume"
+nbTimes = 20
+main =
+  div[](
+    List.repeat nbTimes (div[][text ( "Hello " ++ user )])
+  )
+----
+
+[NOTE]
+====
+You can try this at: http://elm-lang.org/try
+====
+
+=== Angular style binding
+
+In order to build more complex app, we need to start making use of the Elm architecture, namely:
+
+* define a model
+* define how this model can be updated
+* define how this model can be rendered
+
+So we can build a simple page with a text field to update the Hello message as the user types.
+
+It will look like the following:
+
+[source, haskell]
+----
+import Html exposing (..)
+import Html.Attributes exposing (..)
+import Html.Events exposing (onInput)
+import Html.App
+
+-- MODEL
+type alias Model = String
+model : Model
+model = ""
+
+-- Type of messages
+type Msg
+  = Name String
+
+-- Update
+update : Msg -> Model -> Model
+update msg model =
+  case msg of
+    Name n -> n
+
+view : Model -> Html Msg
+view model =
+  div[][
+    input [ placeholder "Your name", onInput Name ][],
+    div[][
+      text ("Hello " ++ model )
+    ]
+  ]
+
+main =
+    Html.App.beginnerProgram {
+    model = model,
+    view = view,
+    update = update }
+----
+
+So in plain english, _we define an explicit model, and update and a view. When the user updates the view, it generates a message to update the model, which then updates the view._
+
+Coming from JavaScript, the signature of the functions might look a bit weird, but basically Elm functions only have 1 parameter so:
+
+  update : Msg -> Model -> Model
+
+Is a function which takes a Msg then returns a function which takes Model than returns a function which returns a Model. Pfffff
+This sounds a bit like *Inception* but it is actually called *function currying*. More information at https://www.reddit.com/r/elm/comments/3jtj7s/how_do_i_read_these_function_typings/
+
+But in plain english: _the update function takes a Msg *AND* a Model *AND then* returns a *new* model._
+
+=== Angular style binding (part deux)
+
+To make this more exciting we can add a second input field where the user can enter how many times the welcome message should be repeated.
+
+To do that, we have to refactor our Model a bit, and also our update function.
+
+Our model has to become a *record* (think *typed JSON*) so it can hold multiple fields, like so:
+
+[source, haskell]
+----
+type alias Model =  { name: String, nbTimes: Int }
+model : Model
+model = { name = "", nbTimes = 0}
+----
+
+Now we need new messages to update the name or the number of times it should appear, like so:
+[source, haskell]
+----
+type Msg
+  = Name String
+  | NbTimes String
+----
+
+The update function becomes more complicated because we have to handle more messages:
+
+[source, haskell]
+----
+update : Msg -> Model -> Model
+update msg model =
+  case msg of
+    Name newName ->
+      { model | name = newName }
+    NbTimes s ->
+      { model | nbTimes = Result.withDefault 0 (String.toInt s) }
+----
+
+In case this is not obvious, the model is not updated in place.
+We create a new version of the model with the updated fields.
+
+And finally, we modify our view to dynamically create entries based on the text and the number of repetitions, like so:
+
+[source, haskell]
+----
+import Html exposing (..)
+import Html.Attributes exposing (..)
+import Html.Events exposing (onInput)
+import Html.App
+import String
+
+-- MODEL
+type alias Model =  { name: String, nbTimes: Int }
+model : Model
+model = { name = "", nbTimes = 0}
+
+-- Type of messages
+type Msg
+  = Name String
+  | NbTimes String
+
+-- Update
+update : Msg -> Model -> Model
+update msg model =
+  case msg of
+    Name newName ->
+      { model | name = newName }
+    NbTimes s ->
+      { model | nbTimes = Result.withDefault 0 (String.toInt s) }
+
+view : Model -> Html Msg
+view model =
+  div[][
+    input [ placeholder "Your name", onInput Name ][]
+    ,input [ placeholder "How many?", onInput NbTimes ][]
+    ,div[](
+      List.repeat (model.nbTimes) (div[][text ("Hello " ++ model.name )])
+    )
+  ]
+
+main =
+    Html.App.beginnerProgram {
+    model = model,
+    view = view,
+    update = update }
+----
+
+All this code is type-checked and compiled so no nasty surprises at runtime.
+
+== Parting words
+
+I've only scratched the surface with Elm, I have plenty more to learn, but so far it feels like a nice little language (and I like its friendly community).
+
+I do like the fact that the update loop is explicit (no binding magic) and that everything is compiled (I made about 4 errors while writing this simple example above), but after that, no runtime surprises.
+
+Elm might take a while to get used to if you come from an imperative programming background.
+It aims at being as pure as possible so the way you handle side effects (like keypresses, field inputs or even dates) might seem odd coming from vanilla JS.
+
+But so far I like it, but that is just me, so *YMMV* like they say.

@@ -1,0 +1,30 @@
+name: Head In The Clouds
+description: Guillaume's musings
+
+destination:  ../blog-output
+
+markdown: kramdown
+highlighter: pygments
+logo: false
+paginate: 15
+baseurl: /
+domain_name: 'http://kafecho.github.io'
+google_analytics: 'UA-XXXXXXXX-X'
+
+gems:
+- jekyll-paginate
+- jekyll-asciidoc
+
+asciidoctor:
+  attributes:
+    - idprefix=_
+    - source-highlighter=pygments
+    - pygments-css=style
+
+# Details for the RSS feed generator
+url:            'http://kafecho.github.io'
+author:         'Guillaume Belrose'
+
+disqus_id: head-in-the-clouds
+org_site: kafecho.github.io
+org_url: https://kafecho.github.io

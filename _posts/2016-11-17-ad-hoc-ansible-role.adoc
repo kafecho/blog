@@ -1,0 +1,65 @@
+---
+layout: post
+title:  "Running ad-hoc roles with Ansible"
+date:   2016-11-17
+categories: Ansible DevOps
+disqus: true
+---
+
+A meta-playbook for running any roles
+
+== A bit of context
+
+Ansible *roles* (http://docs.ansible.com/ansible/playbooks_roles.html#roles) are a very nice construct that provide LEGO-style building blocks that are useful when deploying software.
+
+For example, I've designed quite a few roles to deploy a bunch of things, including:
+
+* Oracle JDKs
+* Solr (which needs a JDK)
+* SolrCloud (which needs Solr)
+* Zookeeper (which needs a JDK)
+* HAProxy
+* Keepalived (to create a failover cluster of things)
+
+Those roles can be combined to create a load-balanced cluster of SolrCloud instances where the load-balancers themselves are resilient.
+
+Like LEGO, you can combine the roles in different ways.
+
+For example to install Logstash, I install an Oracle JDK role.
+
+To install a fail-over cluster of CouchDB nodes, I deploy a CouchDB role combined with the Keepalived role, and so on and so forth.
+
+Normally, to run a role you have to include it in a playbook, but sometimes *all you really want* is to be able to deploy a role on a bunch of machines *without having to craft a playbook*.
+
+== The solution
+
+Caveat: _someone's elegant solution could be considered a hack by somebody else_ :-)
+
+So I created a generic playbook (let's call this deploy-role.yaml) that looks like this:
+
+[source, yaml]
+----
+---
+- hosts: all
+  sudo: yes
+  roles:
+  - "{{ role }}"
+----
+
+Given an inventory file, you can then deploy any arbitrary role like so:
+
+  ansible-playbook -i myInventory deploy-role.yaml -e "role=tcpdump" -l linux-monitored-hosts
+
+This line specifies which role to deploy:
+
+  -e "role=tcpdump"
+
+This line specifies (or *limits*) what machines to apply the role to:
+
+  -l linux-monitored-hosts
+
+Here is another example to setup a JDK8 on a bunch of machines:
+
+  ansible-playbook -i inventory deploy-role.yaml -e "role=oracle-jdk8" -l linux-monitored-hosts
+
+It feels a bit *hacky*, but it works.
