@@ -1,0 +1,170 @@
+---
+layout: post
+title:  "The Batmanacci Sequence"
+date:   2016-12-08
+categories: Elm JavaScript FunctionalProgramming Fibonacci
+disqus: true
+---
+
+Or how to visualise the Fibonacci sequence with Batman
+
+== Spoilers: stupid example ahead
+
+The Fibonacci sequence (https://en.wikipedia.org/wiki/Fibonacci_number) is apparently what happens to rabbits when they have too much spare time.
+They start reproducing *ad infinitum* according to some strict formula (or at least, this is what Mathematicians would like you to believe).
+
+There are many ways to compute the Fibonacci sequence. In Elm you can use recursion with pattern matching like so:
+
+[source, haskell]
+----
+fibonacci : Int -> Int
+fibonacci n =
+    case n of
+        0 ->
+            1
+        1 ->
+            1
+        _ ->
+            fibonacci (n - 1) + fibonacci (n - 2)
+----
+
+The function below simply computes the number of *rabbits* after *n* steps.
+
+== Batmanacci
+
+Batmanacci is just a visualisation of the Fibonacci sequence using images to show you how many Batmans (or Batmen) they would be at each step.
+
+To do so, I wrote a simple function that renders a div with the correct number of Batmen in it:
+
+[source, haskell]
+----
+batmanacci : Int -> Html msg
+batmanacci step =
+    div
+        [ style [ ( "border", "1px dotted grey" ) ]
+        ]
+        (br [] [] :: text (toString step) :: List.repeat (fibonacci step) batmanImage)
+----
+
+So given a step value, the function above would generate an HTML div which has the correct number of Batmen according to the Fibonacci sequence.
+
+What I really want though, it to show, how the sequence evolves, so for a given step *n*, I want to display what the sequence would look like at step 0, 1, 2, up to *n*.
+
+Using Elm's functional programming, it is really easy and I can just write something like:
+
+[source, haskell]
+----
+div [] (List.range 0 model.nbSteps |> List.map batmanacci)
+----
+
+I use the *|>* pipe operator as I find the code easier to read than the normal
+
+[source, haskell]
+----
+List.map batmanacci (List.range 0 model.nbSteps)
+----
+
+Where model.nbSteps is where I keep track of how many steps to display on the UI.
+
+To tie everything together, I just add an input field to capture the number of steps (and the rest is just normal Elm-architecture stuff).
+
+Here is what is looks like:
+
+image::Batmanacci.png[]
+
+== The code
+
+The code in its entirety looks like the following:
+
+[source, haskell]
+----
+module Main exposing (..)
+
+import Html exposing (..)
+import Html.Attributes exposing (..)
+import Html.Events exposing (..)
+import List exposing (..)
+
+
+-- A tiny LEGO batman image
+
+
+batmanImage =
+    -- img [ src "Batclock.jpeg", width 50 ] []
+    img [ src "http://argos.scene7.com/is/image/Argos/2556026_R_Z001A?fmt=pjpg&wid=1240&hei=1116", width 50 ] []
+
+
+
+-- The model keeps track of the number of steps in the Batmanacci sequence
+
+
+type alias Model =
+    { nbSteps : Int
+    }
+
+
+model : Model
+model =
+    { nbSteps = 0 }
+
+
+
+-- Recursive function to compute the Fibonacci sequence
+
+
+fibonacci : Int -> Int
+fibonacci n =
+    case n of
+        0 ->
+            1
+
+        1 ->
+            1
+
+        _ ->
+            fibonacci (n - 1) + fibonacci (n - 2)
+
+
+
+-- Given a Fibonacci step, render as many Batmans as required
+
+
+batmanacci : Int -> Html msg
+batmanacci step =
+    div
+        [ style [ ( "border", "1px dotted grey" ) ]
+        ]
+        (br [] [] :: text (toString step) :: List.repeat (fibonacci step) batmanImage)
+
+
+type Msg
+    = NbSteps Int
+
+
+update : Msg -> Model -> Model
+update msg model =
+    case msg of
+        NbSteps i ->
+            { model | nbSteps = i }
+
+
+view : Model -> Html Msg
+view model =
+    div []
+        [ input
+            [ placeholder "Nb steps"
+            , onInput (\s -> String.toInt s |> Result.withDefault 0 |> Basics.max 0 |> NbSteps)
+            ]
+            []
+          -- render all the Batmans from 0 up to the number steps
+        , div [] (List.range 0 model.nbSteps |> List.map batmanacci)
+        ]
+
+
+main =
+    beginnerProgram
+        { model = model
+        , view = view
+        , update = update
+        }
+----

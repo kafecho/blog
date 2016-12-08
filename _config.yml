@@ -20,6 +20,7 @@ asciidoctor:
     - idprefix=_
     - source-highlighter=pygments
     - pygments-css=style
+    - imagesdir= /assets/images
 
 # Details for the RSS feed generator
 url:            'http://kafecho.github.io'
