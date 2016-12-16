@@ -168,3 +168,10 @@ main =
         , update = update
         }
 ----
+
+
+== Live demo
+
+Since publishing this post, I've made some changes to the code to make it funkier and more user friendly.
+
+Have a look at a live demo at: https://runelm.io/c/5xr
