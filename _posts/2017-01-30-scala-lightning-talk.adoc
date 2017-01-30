@@ -1,0 +1,16 @@
+---
+layout: post
+title:  "Scala lightning talk at the Java Jozi JUG"
+date:   2017-01-30
+categories: Scala Java JUG
+---
+
+= Another Scala intro.
+
+I gave yet another Scala intro talk at the Java Jozi JUG.
+
+It had been a while since my last Scala talk, and while preparing for it, I realized how my Scala coding style has changed over the years.
+
+The 2017 edition definitely has a strong *Functional Programming* flavour.
+
+The slides are very high level and cover a tiny spectrum of the language. There are here: {site-url}/assets/presentations/scala-in-15-minutes-jozi-jug-30-01-2017.pdf
