@@ -1,0 +1,51 @@
+---
+layout: post
+title:  "Introduction to Elm"
+date:   2017-05-13
+categories: Elm
+---
+
+Back in April, I gave an https://www.meetup.com/lambda-luminaries/events/237238223/[Introduction to Elm] talk at the Johannesburg-based Lambda Luminaries Meetup hosted by https://www.jemstep.com/en[Invesco Jemstep].
+My talk was roughly structured like the official https://guide.elm-lang.org/install.html[Elm tutorial] and I used a mixture of slides and demos to explain various concepts.
+
+== Talk structure
+I covered the following:
+
+* Language syntax (literal, functions, currying)
+* The virtual DOM
+* The Elm architecture
+* Ports
+* The Elm community
+
+As we had quite a lot of ground to cover, the talk ended up a bit too long (it's rather hard to cover a language from scratch within 45 minutes ~ 1 hour), but I think it was well received and I got some good feedback.
+
+== Slides and demos
+
+During the talk, I did a bunch of demos (including a live one), as I think it is sometimes the most effective way of explaining particular aspects of a language.
+
+If you are interested, the https://github.com/kafecho/Lambda-Luminaries-Meetup-2017/blob/master/slides.md[slides] (made with *Deckset*) and https://github.com/kafecho/Lambda-Luminaries-Meetup-2017/tree/master/Demos[demos] are available on Github.
+
+In particular I did the following demos (refer to the particular files in the Git repo):
+
+* HelloMeetup.elm: a simple app to illustrate how to build up a *static* page via the Virtual DOM.
+* Angular.elm: to illustrate how to implement Angular-style binding in Elm using the Elm architecture. The Elm code ends up being quite long, but with *0% magic* in it.
+* Weather.elm: an Elm app which talks HTTP to the Yahoo Weather API to fetch and display the weather for some South Africa cities. This demonstrates how to use the Elm architecture for calling out to an HTTP service.
+* Trailer.elm: a simple Elm app using ports to control HTML5 video playback via keyboard events (play/pause/skip frames, etc...). Kudos to http://vincent.jousse.org/en/tech/interacting-with-dom-element-using-elm-audio-video/[Vincent Jousse] for the inspiration.
+
+As we normally give away prizes at each Lambda Luminaries Meetup (JetBrains license, Manning eBooks), I wrote a prize draw app in Elm to pick winners at random (https://github.com/kafecho/Lambda-Luminaries-Meetup-2017/blob/master/Demos/PrizeDraw.elm).
+
+The app uses the Random side-effect facility built-in the Elm architecture to pick a winner at random (from the list of Meetup participants).
+The winner can then accept or refuse the prize. The process continues until all the prizes have been given away.
+It's nothing too complicated, but I like that there is a clearly defined model (albeit small) and a well defined set of union types that the compiler can check out for.
+
+== The making of
+
+A couple of observations. While working on the demos, I relied heavily on the Elm compiler to fix my mistakes.
+Most of the time, I would just refactor the code until it compiled and in most cases, it would just work the 1st time it compiled.
+
+The Weather demo involved making HTTP calls and JSON decoding which I did struggle with at times.
+I found that I had to result to Elm Debug to understand what was going.
+Compared with Vanilla JS, this part of Elm felt too complicated, especially when you are used to Ajax and just poking inside JSON until you find what you want.
+
+The port demo (Trailer.elm) turned out to be quite simple with not too much JS boiler plate involved.
+Relying on Elm to handle the state and events and Vanilla JS to be a pure render engine worked out quite well in this case.
