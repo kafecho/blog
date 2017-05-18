@@ -3,6 +3,7 @@ layout: post
 title:  "Introduction to Elm"
 date:   2017-05-13
 categories: Elm
+disqus: true
 ---
 
 Back in April, I gave an https://www.meetup.com/lambda-luminaries/events/237238223/[Introduction to Elm] talk at the Johannesburg-based Lambda Luminaries Meetup hosted by https://www.jemstep.com/en[Invesco Jemstep].
