@@ -1,0 +1,111 @@
+---
+layout: post
+title:  "Ansible and Windows"
+date:   2015-01-07
+categories: Ansible and Windows
+disqus: true
+---
+
+In this post, we are going to be looking at how to use Ansible to manage Windows systems.
+
+== Context
+
+I've been tasked to look at various configuration management solutions to setup and manage Windows machine.
+
+As I already use Ansible in quite a few places on Linux, I decided to try the relatively new Windows support (as of 1.7).
+I set myself a fairly simple task, that is installing and configuring CouchDB from scratch.
+I later added the ability to install Microsoft Silverlight.
+
+Setting up the Windows environment was fairly straightforward, I just followed the instructions from the Ansible website and I was able to setup my Windows7 box with WinRM.
+
+Ansible has managed to keep the same operating model on both Windows and Linux: it's all agent-less, you can invoke ad-hoc commands on both Windows and Linux, and even write Playbooks where some sections take place on Windows while others on Linux.
+The list of Windows specific modules is a bit small (but hopefully growing).
+
+For my particular job, I needed to tweak the CouchDB configuration once it is installed.
+Normally on Linux, I would use the template module, which is not yet available on Windows.
+I eventually settled for a hybrid option, where I apply the template locally on the Linux 'master' node and then I instruct the Windows box to fetch the templated content via http (I run an HTTP server on my Ansible 'master' node).
+
+== The playbooks
+
+Here is what the Playbook looks like.
+
+The steps below run on the Ansible 'master' node.
+
+[source, YAML]
+----
+- hosts: 127.0.0.1
+  sudo: True
+  connection: local
+  vars:
+   # Some customisations to the CouchDB configuration.
+   couchdb_port: 5983
+   couchdb_bind_address: 0.0.0.0
+
+  tasks:
+  # I use a web server to serve content from the master node to the windows machine.
+  # This approach also enables offline mode, where the Windows node don't have access to the internet
+  - name: install Apache2 on the Ansible master node
+    yum: name=httpd
+
+  - name: create the ansible folder that will be served by Apache2
+    file: path=/var/www/html/ansible state=directory
+
+  - name: retrieve the Windows installer for CouchDB
+    get_url: url=http://apache.is.co.za/couchdb/binary/win/1.6.1/setup-couchdb-1.6.1_R16B02.exe dest=/var/www/html/ansible/couchdb.exe force=no
+
+  - name: add a copy of the Silverlight windows installer to the web server folder
+    copy: src=Silverlight_x64.exe dest=/var/www/html/ansible/Silverlight_x64.exe
+
+  # Templating is not yet supported in Windows, so we template the file on the master node and serve the output via http
+  - name: create a CouchDB local.ini file from a template and save it to the local webserver.
+    template: src=local.ini.j2 dest=/var/www/html/ansible/local.ini
+
+  - name: ensure that Apache2 is running
+    service: name=httpd state=started
+----
+
+The steps below run on any Windows node in the inventory
+
+[source, yaml]
+----
+- hosts: windows
+  gather_facts: no
+  tasks:
+  # We discover the ip address of the master node, so that windows nodes can fetch content over Http from the right place
+  - name: fetch the ip address of the master node
+    local_action: "shell ifconfig eth1 | grep 'inet addr' | awk -F: '{print $2}' | awk '{print $1}'"
+    register: ansible_master_ip
+
+  - name: download the Silverlight installer from the Ansible master node
+    win_get_url: url=http://{{ ansible_master_ip.stdout }}/ansible/Silverlight_x64.exe  dest=C:\Users\Guillaume\silverlight.exe
+
+  - name: proceed to a silent install of silverlight
+    script: installsilverlight.ps1
+
+  - name: download the couchdb.exe InnoSetup installer from the Ansible master node
+    win_get_url: url=http://{{ ansible_master_ip.stdout }}/ansible/couchdb.exe  dest=C:\Users\Guillaume\couchdb.exe
+
+  - name: ensure that CouchDB is stopped
+    win_service: name="Apache CouchDB" state=stopped
+    ignore_errors: true
+
+  - name: stop left-over Erlang processes (otherwise, the installation via PowerShell will fail)
+    script: stoperlang.ps1
+
+  - name: proceed to a silent install of couchdb
+    script: installcouchdb.ps1
+
+  - name: customize the CouchDB configuration
+    win_get_url: url=http://{{ ansible_master_ip.stdout }}/ansible/local.ini dest='C:\Program Files (x86)\Apache Software Foundation\CouchDB\etc\couchdb\local.ini'
+
+  - name: restart couchdb
+    win_service: name="Apache CouchDB" state=restarted
+----
+
+== Some thoughts
+
+I do find the Windows philosophy for installing software a bit unusual (it mostly assumes a GUI and someone clicking on things to proceed), but thankfully, I was able to work out the steps to install things silently.
+
+Overall, I am quite happy with the result. The next version of Ansible (1.9) should have improved Windows support with extra modules for doing file copy and dealing with templates.
+
+Good job to the Ansible team for keeping it very simple.

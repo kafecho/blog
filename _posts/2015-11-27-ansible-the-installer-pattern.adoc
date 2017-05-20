@@ -1,0 +1,86 @@
+---
+layout: post
+title:  "Ansible: the installer pattern"
+date:   2015-11-27
+categories: Ansible HAProxy DevOps
+disqus: true
+---
+
+In this post, I will talk about an approach for doing configuration management in environments where the network is locked down and your target nodes don't have access to the Internet.
+
+== A bit of context
+
+In my day job, I write software systems that help media companies (think BBC, ESPN) put together content (think news) that will be broacast to air.
+Over the years, software has morphed to become ever more sophisticated with ever more moving parts.
+We are no longer configuring a single executable that run on a Windows PC, we are producing systems that have to be correctly installed, configured and monitored.
+I've been investing a lot of effort with Automate-all-the-things Ansible and today, we have a rather extensive set of roles for deploying pretty much all we need, from JVMs all the way to HA clusters and monitoring tools.
+
+A newsroom environment (as made popular by Aaron Sorkin's The Newsroom TV series) is a fairly controlled space. During a visit to the BBC production facility back in May this year, I had to put my laptop's power supply through a set of tests (in case it caused interferences with the broadcast signals). Likewise, there were no microwave ovens in sight in the lunch area (again, because they could issues and fry live radio transmissions). To add to the fun, in this production environment, machines tend to be locked down; they are often configured to block access to the outside world (the Internet). So your vanilla Ansible roles which download stuff from the internet won't fly.
+
+== The solution
+
+The solution we've settled for is what I call the Ansible installer pattern. In this instance, the installer is a Linux node (I use CentOS) which contains pre-cached dependencies. The installer lives within the customer's Intranet. It runs Ansible with an Apache web server. At deployment time, the installer uses roles which instructs the target nodes to go and fetch rpms and other files from its web server (the so-called phone home pattern).
+
+I've experimented with various approaches to build the installer (all with Ansible):
+
+* as a complete OS image (built with Vagrant / VirtualBox)
+* as a docker container
+* as a self contained tar file that can be unpacked and used on any vanilla CentOS machine.
+
+We eventually settled for the last option. In the remainder of this post, I will describe how it works.
+
+To build the installer tar file, we launch a vanilla CentOS virtual machine (think of it as a golden installer) which we configure with Ansible. Ansible creates the cache folder and then runs a bunch of roles to cache various dependencies. In addition, Ansible fetches the packages to install Apache and the packages to install itself (so the system can be bootstraped). At the end; we are left with a folder,a bunch of scripts and some Ansible playbooks used for deployment. The folder is then archived and zipped using tar. The tar archive can be copied to any plain CentOS node that can then be used as an installer. Building the tar file is fully automated using Jenkins and Ansible.
+
+To make things more concrete, let's say you want to deploy the HAProxy load balancer, with this approach, you essentially have to write 2 roles.
+The purpose of the 1st role is to cache all the dependencies that are required to install HAProxy. This role is executed when the installer tar file is built. It looks like this:
+
+[source, yaml]
+----
+---
+- name: cache the rpms required to install HAProxy
+  shell: repotrack -p {{ rpms_root }} haproxy
+----
+
+The variable rpms_root point to a fixed location (i.e. the cache).
+
+At deployment time, we use a different role that installs HAProxy from the rpms that have been cached.
+The role looks just like what you would write if the node had access to the Internet, except if uses a special purpose yum repository (here called ansible).
+
+[source, yaml]
+----
+---
+- name: install HAProxy
+  shell: yum install -y haproxy --disablerepo=* --enablerepo=ansible
+
+- name: customize HAProxy to serve HTTP traffic to the designated downstream servers
+  template: src=haproxy.cfg.j2 dest=/etc/haproxy/haproxy.cfg owner=haproxy group=haproxy
+  notify: restart_haproxy
+
+- name: ensure HAProxy is started and enabled at boot time
+  service: name=haproxy state=started enabled=yes
+----
+
+At deployment time, the installer adds the special ansible yum repository on all the target nodes. The yum repo is derived from a template that looks like this:
+
+[source, ini]
+----
+[ansible]
+name=Ansible
+baseurl=http://{{ deployment_node_ip }}/rpms
+enabled=1
+gpgcheck=0
+----
+
+In other words, at deployment time, each node knows where to go to find the RPM to install. deployment_node_ip points to the IP address of the installer node.
+
+I've tested this approach with CentOS nodes, but it should work (with some changes obviously, pick your favourite package manager) on other Linux distributions. I've also tested caching and deploying Windows applications. It works quite well, but extra steps are required to download all the dependencies required to setup WinRM connections.
+
+== Pros and cons
+
+An obvious benefit of the installer pattern is that it makes deployments quite a bit faster since everything is pre-cached. If you have to install a large package on a set of nodes (for example, a SolrCloud cluster) then the speedups can be quite substantial. If you have to deploy a full stack (from app to monitoring on multiple nodes), then even more so. From start to finish, our complex stack takes about 7 minutes to deploy and configure. The obvious downside of the approach is that it forces you to split your deployment into 2 stages (cache and install). Testing also requires a bit more rigour as you really need to ensure that your target machines are cut of from the Internet (otherwise you might be testing the wrong thing). For that I use Vagrant to launch clusters using private networks configured with no Internet access.
+
+Most people nowadays are lucky enough to host things in the Cloud or on their own infrastructure. If you are not, and if tightly controlled environments are an issue for you, I am hoping that you've found this post useful.
+
+As always, comments and questions are welcome.
+
+Guillaume.

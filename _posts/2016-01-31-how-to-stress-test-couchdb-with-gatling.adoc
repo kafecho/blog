@@ -1,0 +1,48 @@
+---
+layout: post
+title:  "How to stress test CouchDB with Gatling"
+date:   2016-01-31
+categories: CouchDB Gatling Scala Akka
+disqus: true
+---
+
+
+In this blog post, I am going to show you how to use Gatling (http://gatling.io/) to test the performance of CouchDB's HTTP operations.
+
+== What is Gatling?
+Gatling is an HTTP performance tool written in Scala with the Akka and Netty toolkits.
+Via Akka and Netty, Gatling can generate a large amount of load, while making efficient use of threads (those libraries are all based on non-blocking I/O).
+It is a JVM application, therefore, you can run it on a variety of platforms without a problem.
+
+== The Gatling DSL
+Gatling provides you with a Domain Specific Language for writing simulations to generate load on (among other things) HTTP-based services such as CouchDB.
+The DSL is written in Scala and provides a fluent interface.
+It provides convenience mechanisms for triggering HTTP methods (GET, PUT, POST, DELETE), as well as simulating wait times and "arrival" times of user.
+
+I've put together a sample Maven project which illustrates one approach for running Gatling stress tests via the command line.
+Have a look at: https://github.com/kafecho/gatling-couchdb-simulations.
+You only need Apache Maven and a JDK to run the sample.
+Gatling embeds a version of the Scala compiler so you don't need to have one running.
+
+The sample project contains a single simulation which does the following against a CouchDB server:
+
+* Each synthetic user creates a database
+* Each synthetic user proceeds to add a number of JSON docs to that database
+* Once documents have been added, each synthetic user deletes the database
+
+You fill find further instruction on the Github page on how to run the simulation.
+
+== Gatling output
+Gatling produces nice charts with details about response time and throughput (even for specific HTTP operations) so it gives you and idea of what the performance and bottlenecks are.
+
+Here are some examples:
+
+image::gatling1.png[]
+
+image::gatling2.png[]
+
+image::gatling3.png[]
+
+Previously, I had used similar simulations to stress-test BigCouch clusters and the code can be reused out of the box to test CouchDB 2.0 clusters.
+I've also shared some Ansible recipes to make the deployment of CouchDB 2.0 a bit easier.
+Have a look at https://github.com/kafecho/ansible-couchdb2
