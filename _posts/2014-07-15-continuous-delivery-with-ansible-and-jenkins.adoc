@@ -1,0 +1,51 @@
+---
+layout: post
+title:  "Continuous delivery with Ansible and Jenkins"
+date:   2014-07-15
+categories: Ansible Jenkins DevOps
+disqus: true
+---
+
+For the past few weeks, I've been working on a Continuous Delivery pipeline (a la https://continuousdelivery.com/[Jez Humble]) for a software based broadcast system that we are building at http://www.quantel.co.uk[Quantel]. Ansible has quickly become a crucial piece of technology to make this possible.
+
+== Ansible all the things
+
+The pipeline is far from *trivial*.
+
+Compiling code and running unit tests is fairly easy but things start to get complicated very quickly when it comes to running integration tests, acceptance tests and performance tests.
+
+Tests need the right environment to run in (the stack is essentially a set of distributed systems with 3rd party dependencies like CouchDB or Solr).
+
+We also want to deploy to Linux clusters, to Windows machines and for demos and manual tests purposes, we want to build Vagrant images or Docker containers so that people can try the software on their own machine.
+
+From day 1, I decided to use Ansible to automate *everything that could be automated*. Hence a bunch of rules.
+
+* The 1st rule was as follow: `if I had to do something more than once, it would have to be automated`.
+* The 2nd rule was a follow: if possible, don't SSH directly into the host, but instead use Ansible to run SSH commands. That way, ensuring that whatever I do is always captured into a playbook which can be reliably replayed ad infinitum.
+
+== Building blocks
+
+So far, I am managing the following things with Ansible.
+
+We use Jenkins as the build server and setting up Jenkins from scratch is taken care by an Ansible playbook.
+I have fairly simple Ansible script which installs precise versions of the JDK, Maven, Git, etc, etc..
+All the things you need to build. User accounts and SSH permissions are also taken care of.
+If for some reason the Jenkins were to die, I could easily rebuild it.
+
+I've also written an Ansible playbook to configure Linux Jenkins slaves.
+This takes care of creating the correct users, manage SSH keys, etc...
+So far I have setup about 10 Jenkins slaves and it was very easy.
+
+When the code is built, I use Ansible to deploy a given version of the stack on a virtual machine which is itself managed by Ansible (via Vagrant).
+Ansible takes care of installing Java and the right dependencies so that integration or performance tests can run.
+A similar version of the playbook can be used to deploy the software stack to a CentOS staging environment.
+
+Some of the tests that we run have complicated dependencies.
+For example, in one of the tests, we process RTP video streams and extract subtitles and timecode information and assert that they are present and correct.
+For that, we use the http://www.videolan.org/projects/multicat.html[Multicat] tool which is rather straight forward to turn into a playbook.
+
+`Steve Jobs could have well said "there is a playbook for that".`
+
+The ease with which you can turn written instructions into a working playbook that is straight forward to read and maintain is one of the things I like best about Ansible.
+
+The best thing about all this is that I manage all this setup from my house controlling servers *9000 kms away*.

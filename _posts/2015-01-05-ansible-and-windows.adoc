@@ -2,11 +2,14 @@
 layout: post
 title:  "Ansible and Windows"
 date:   2015-01-07
-categories: Ansible and Windows
+categories: Ansible Windows
 disqus: true
 ---
 
 In this post, we are going to be looking at how to use Ansible to manage Windows systems.
+
+_Warning: this is an *old* blog post which was originally posted on my Blogspot blog http://kafecho.blogspot.co.za/
+The content and techniques described below are mostly out of date as Ansible on Windows is miles ahead now!!! *Tech moves fast, and I am getting older.* :-)_
 
 == Context
 

@@ -6,9 +6,7 @@ categories: Elm JavaScript FunctionalProgramming Fibonacci
 disqus: true
 ---
 
-Or how to visualise the Fibonacci sequence with Batman
-
-== Spoilers: stupid example ahead
+Or how to visualise the Fibonacci sequence with Batman (spoilers: stupid example ahead).
 
 The Fibonacci sequence (https://en.wikipedia.org/wiki/Fibonacci_number) is apparently what happens to rabbits when they have too much spare time.
 They start reproducing *ad infinitum* according to some strict formula (or at least, this is what Mathematicians would like you to believe).

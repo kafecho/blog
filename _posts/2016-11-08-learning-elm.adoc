@@ -6,7 +6,7 @@ categories: Elm JavaScript FunctionalProgramming
 disqus: true
 ---
 
-Make JS great again?
+Or as Trump would say, *Make JS great again?* In this post, I will tell you a bit about my foray into FP for front-end web applications.
 
 == A bit of context
 *Disclaimer*: I quite like JavaScript and I think that some of the modern Web APIs (media source extension, web audio api) are really cool, especially when you work in the media domain.

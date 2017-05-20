@@ -5,14 +5,9 @@ date:   2016-11-08
 categories: Hello
 ---
 
-= Hello, World! It's been a while :-)
+Hello, World! It's been a while :-) After a rather long hiatus, I've decided to resume blogging. This time around, since we are in 2016, well *almost 2017*, I am trying *new* tech: a static blog generated with Jekyll (https://jekyllrb.com/) and hosted on Github pages (https://pages.github.com/).
 
-
-After a rather long hiatus, I've decided to resume blogging.
-
-This time around, since we are in 2016, well *almost 2017*, I am trying *new* tech: a static blog generated with Jekyll (https://jekyllrb.com/) and hosted on Github pages (https://pages.github.com/).
-
-It's not really that new, but I am just playing catch-up with the cool kids.
+Ok, It's not really that new, but I am just playing catch-up with the cool kids.
 
 == Why Jekyll?
 

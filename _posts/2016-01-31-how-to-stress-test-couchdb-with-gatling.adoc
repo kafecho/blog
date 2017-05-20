@@ -9,6 +9,9 @@ disqus: true
 
 In this blog post, I am going to show you how to use Gatling (http://gatling.io/) to test the performance of CouchDB's HTTP operations.
 
+_Warning: this is an *old* blog post which was originally posted on my Blogspot blog http://kafecho.blogspot.co.za/
+The content and techniques described below are mostly out of date. *Tech moves fast, and I am getting older.* :-)_
+
 == What is Gatling?
 Gatling is an HTTP performance tool written in Scala with the Akka and Netty toolkits.
 Via Akka and Netty, Gatling can generate a large amount of load, while making efficient use of threads (those libraries are all based on non-blocking I/O).
