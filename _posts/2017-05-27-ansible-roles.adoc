@@ -1,0 +1,91 @@
+---
+layout: post
+title:  "Ansible roles"
+date:   2017-05-27
+categories: Ansible
+disqus: true
+---
+
+In this post, I am going to talk about some of the Ansible roles that I've built over the years. This post is written from the point of view of a Software Engineer, so think *Dev* Ops.
+
+== Once upon a time
+I started working with Ansible back in 2012, the year when it was initially released.
+At the time, I was mostly doing software engineering and I was amazed at how simple Ansible was as I could quickly build configuration management solutions to deploy and manage the software I had written.
+Over the years, I've accumulated written quite a few playbooks and re-usable roles which is what I am going to talk about today.
+
+== What is a role?
+
+In case you don't know what a http://docs.ansible.com/ansible/playbooks_roles.html[role] is, you can think of it as a reusable set of instructions which you can use to manage a particular set of configurations.
+
+For example, if you work in Java, Scala or Clojure, you will need a JDK installed to run your software.
+
+Sometimes, it is easy, and you just delegate to your OS package manager to do it for you.
+
+Sometimes you have to go through a bunch of hoops in order to make it work (as it is the case with the Oracle JDK). 
+
+Luckily, Ansible lets you easily capture those hoops into a *LEGO-block* style set of instructions which you can apply anywhere you want. This is the essence of a role. 
+
+== Operating Systems
+I can't verify this scientifically, but I think the vast majority of Ansible users are using it to setup and manage Linux systems (CentOS, Ubuntu, etc..).
+
+There are exceptions of course, with people like http://hindenes.com/trondsworking/[Trond Hindenese] and https://www.ansible.com/ansible-2-windows[Jon Hawkesworth] doing amazing work to promote Ansible on Windows. 
+
+The vast majority of roles that I've written are for CentOS, although I've also written quite a few Ansible roles as well, and even roles which are OS and OS distribution agnostic.
+
+== Stuff I've done on Windows
+
+Here is a non exhaustive list of roles that I've written for Windows
+
+* Oracle JDK: downloads and installs a particular version of the Oracle JDK so I can run JVM-based applications
+* Apache Commons Daemon: so that I can run JVM apps as Windows service
+* https://nssm.cc/[NSSM]: another tool for running anything as a Windows service
+* Solr and SolrCloud: combine some of the roles above to run Solr as a Service on Windows
+* MySQL: installs and configure MySQL with a given profile and database settings
+* CouchDB: installs and configure CouchDB instances and setup up databases with replication. This is done with CouchDB 1.6.x
+
+== Stuff I've done on Linux
+
+Here is a non exhaustive list of roles that I've built for Linux
+
+* Oracle JDK, again Oracle does not make life easy, but Ansible does
+* Jenkins
+* Vagrant (for creating VMs on demand)
+* CouchDB, including CouchDB 1.6 and CouchDB 2.x (and some BigCouch)
+* Zookeeper for easily setting up Zookeeper clusters
+* Solr and SolrCloud
+* Elastic Search, Kibana, Logstash
+* InfluxDB and Grafana
+* HAProxy
+* http://www.keepalived.org/[Keepalived] as a generic mechanism for providing failover for processes
+* Clusters with http://clusterlabs.org/doc/[Pacemaker], Corosync and https://docs.linbit.com/[DRBD]
+* Monit
+* https://www.icinga.com/products/icinga-2/[Icinga2] where Ansible is used throughout from installing the software to configuring hosts, groups, checks and alerts. In one facility this is used to monitor up to *160 machines!!*.
+* Some custom roles to interact with hardware equipement used in television facilities
+
+== Automate all the things
+
+The main purpose of the Ansible roles is to *automate as much as possible*.
+
+For example, I built a *Continuous Delivery pipeline* pretty much entirely from roles.
+
+Ansible is used throughout, from deploying and configuring Jenkins to managing the virtual infrastructure that Jenkins uses for building and testing software.
+
+== Complex made easy
+
+Ansible makes what seems like complicated things *very very easy*.
+
+For example, setting up a SolrCloud cluster on 5 machines backed with a Zookeeper ensemble is actually a matter of putting the right LEGO blocks together. 
+Setting a resilient load-balanced website is actually easy once you have the right pieces in place (HAProxy, Keepalived).
+And the nice thing is you can use the same pieces to build other kinds of resilient deployments.
+
+Some of the roles that I've written have been used in rather complex deployment topologies, for example for *resilience* and *disaster recovery* purposes.
+The nice thing is that the role did not have to change (most of the work went into the design of Ansible inventories), so the same role that can be used on my laptop also works when used in a datacenter environment.
+
+== It's all in the code
+
+Ansible roles keep everything in one place. The code is self explanatory (with the use of comments), so if you want to know how something is deployed, instead of reading documentation or watching a tutorial, just look at the .YAML files and you are good to go.
+I get back to roles that I have written 5 years ago, and the intent is still very clear, because of the documentation, but also because of the declarative YAML syntax.
+It just reads as easy as *written instructions* but with the added benefit of being *executable instructions*. 
+
+== Parting words
+I hope that you've enjoyed this post, please get in touch with me (kafecho at gmail dot com) if you want to find out more, or need help with your deployments.
