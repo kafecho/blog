@@ -1,4 +1,4 @@
-name: Head In The Clouds
+name: Sound / Code
 description: Guillaume's musings
 
 destination:  ../blog-output
@@ -8,7 +8,7 @@ highlighter: pygments
 logo: false
 paginate: 15
 baseurl: /
-domain_name: 'http://kafecho.github.io'
+domain_name: 'http://www.soundcode.co.za'
 google_analytics: 'UA-XXXXXXXX-X'
 
 gems:
@@ -23,9 +23,9 @@ asciidoctor:
     - imagesdir= /assets/images
 
 # Details for the RSS feed generator
-url:            'http://kafecho.github.io'
+url:            'http://www.soundcode.co.za'
 author:         'Guillaume Belrose'
 
-disqus_id: head-in-the-clouds
-org_site: kafecho.github.io
-org_url: https://kafecho.github.io
+disqus_id: www-soundcode-co-za
+org_site: www.soundcode.co.za
+org_url: http://www.soundcode.co.za
