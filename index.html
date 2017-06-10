@@ -4,6 +4,7 @@ title: Home
 cover: 'assets/images/anse-madame.jpg'
 about: 'about.html'
 talks: 'talks.html'
+projects: 'projects.html'
 ---
 
 <header class="main-header {% if page.cover %}" style="background-image: url({{ page.cover }}) {%else%}no-cover{% endif %}">
@@ -22,6 +23,7 @@ talks: 'talks.html'
                 {% if site.description %} {{ site.description }}. {% endif %}
                 {% if page.about %} <a href='{{ site.baseurl }}{{ page.about }}'>About me</a>{% endif %}
                 {% if page.talks %} / <a href='{{ site.baseurl }}{{ page.talks }}'>Talks</a> {% endif %}
+                {% if page.projects %} / <a href='{{ site.baseurl }}{{ page.projects }}'>Projects</a> {% endif %}
             </h2>
         </div>
     </div>
