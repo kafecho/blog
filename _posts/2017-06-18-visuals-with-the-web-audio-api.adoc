@@ -1,0 +1,189 @@
+---
+layout: post
+title:  "Simple visuals with the Web Audio API"
+date:   2017-06-16
+categories: JavaScript
+disqus: true
+---
+
+In this post, we are going to be looking at some cool stuff that you can do with the Web Audio API.
+
+== Context
+
+As a inspiring musician, I like all things related to sound.
+I don't do an amazing amount of JavaScript on a regular basis, but the https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API[Web Audio API] is one of my favourites browser APIs ever.
+
+It gives you elegant (and clock-accurate) APIs for *creating*, *playing* and *analysing* sounds.
+You can use it to play audio samples with very high precision, create music from elemental waves, and even do very cheap Fast Fourier Transforms. 
+In this post, we are going to see how to build a simple volume meter using the Web Audio API and some HTML5 canvas objects.
+
+For some more background information see:
+
+* http://chimera.labs.oreilly.com/books/1234000001552/ch03.html
+* http://www.smartjava.org/content/exploring-html5-web-audio-visualizing-sound
+* and for some really awesome demos, go to http://webaudiodemos.appspot.com/
+
+== Approaches
+
+In order to analyse the volume of a video clip, we essentially need to get hold of the audio samples (the waveform) at a given point in time.
+We can then look at the peak value of the amplitude function. If the absolute value of the amplitude is too high, then the sound is likely to end up being distorted, which is what we want to avoid.
+
+The Web Audio API allows you to build an audio processing chain from a variety of sources, including HTML5 players.
+
+The Web Audio API provides 2 mechanisms for finding the waveform:
+
+* use a ScriptProcessorNode https://developer.mozilla.org/en-US/docs/Web/API/ScriptProcessorNode
+* use an AnalyserNode https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode that is based on a fast Fourier transform (FFT) with a given sample size.
+
+I've decided to use an AnalyserNode for the various reasons:
+
+* the ScriptProcessorNode has a deprecation warning
+* it slows things down as it runs all the time (whenever there is audio available to be processed)
+* it is hard to chain with other nodes.
+
+The AnalyserNode is a lot more user friendly, but has to be ran on demand, so basically the recommendation is to run it within a *requestAnimationFrame* cycle.
+
+== Using the Analyser node
+
+Given an audio source, an analyser node would mix all available channels prior to analysis, so in order to preserve the information relevant to the various channels, we have to use a channel splitter.
+
+[source, javascript]
+----
+var audioContext  = new (window.AudioContext);
+var videoPlayer   = document.getElementById("video");
+var source        = audioContext.createMediaElementSource(videoPlayer);
+var splitter      = audioContext.createChannelSplitter(2);
+
+source.connect(splitter);
+----
+
+In the code above, we create an audio source from an HTML5 video player and split the channel into left and right.
+
+For test purposes (for example to trigger a distortion), I pipe the left and right channels to amplifier nodes (gain nodes).
+
+[source, javascript]
+----
+var leftChannelGain    = audioContext.createGain();
+var rightChannelGain   = audioContext.createGain();
+
+leftChannelGain.gain.value = 1;
+rightChannelGain.gain.value = 1;
+
+splitter.connect(leftChannelGain, 0);
+splitter.connect(rightChannelGain, 1);
+----
+
+In the example above, the gain is set to 1 (i.e. volume unchanged, but setting it to a higher value will cause distortions.)
+
+The next step is to create analyser nodes for the left and right channels.
+Each analyser is connected to its source to a gain node. The output of each analyser is merged back to the destination so it can be played back via the output device.
+
+[source, javascript]
+-----
+var leftChannelAnalyser = audioContext.createAnalyser();
+leftChannelAnalyser.fftSize = fftSize;
+var leftChannelTimeData = new Float32Array(leftChannelAnalyser.fftSize);
+
+var rightChannelAnalyser = audioContext.createAnalyser();
+rightChannelAnalyser.fftSize = fftSize;
+var rightChannelTimeData = new Float32Array(rightChannelAnalyser.fftSize);
+
+leftChannelGain.connect (leftChannelAnalyser);
+rightChannelGain.connect (rightChannelAnalyser);
+
+var merger      = audioContext.createChannelMerger(2);
+
+leftChannelAnalyser.connect(merger, 0, 0);
+rightChannelAnalyser.connect(merger, 0, 1);
+
+merger.connect(audioContext.destination);
+-----
+
+The Web Audio API graph is very flexible, so the various nodes can be wired differently.
+I just chose this structure because, well  *¯\_(ツ)_/¯*
+
+At each analysis, the time-domain waveform is available as a Float32Array whose values are normally between [-1, 1] (this is a mapping of a 32bit), where the (absolute) value of 1 is considered as an acceptable limit.
+If the gain on a channel is too high, the number can be higher than 1, in this case, a distortion is likely to occur.
+
+The [-1, 1] range is actually a mapping to the range expressed with https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode/minDecibels and https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode/maxDecibels.
+
+Note that those decibel values *don't correspond* to the gain (as in the amplification factor). Basically they refer to the dBFS (decibel full scale, as described in more details in http://chimera.labs.oreilly.com/books/1234000001552/ch03.html).
+
+In a digital VU meter, the maximum volume is set at 0db, anything beyond down will result in audio clipping. See this for more information: https://documentation.apple.com/en/finalcutpro/usermanual/index.html#chapter=54%26section=1%26tasks=true
+
+We can use a simple function to find the peak "volume" for a given array.
+
+[source, javascript]
+----
+var findPeak = function(array){
+    var peak = 0;
+    array.forEach(function(value){
+        peak = Math.max( peak, Math.abs(value));
+    });
+    return peak;
+};
+----
+
+In order to graph the peak volume, we use 2 canvas elements (1 per channel) that uses gradient between shades of green, orange and red (where red indicates likely audio clipping).
+
+[source, javascript]
+----
+var leftPeakMeterCanvas = document.getElementById("left-peak-meter");
+var leftPeakMeterContext = leftPeakMeterCanvas.getContext("2d");
+var leftPeakMeterGradient = leftPeakMeterContext.createLinearGradient(0, 0, 200, 0);
+leftPeakMeterGradient.addColorStop(0.5, "green");
+leftPeakMeterGradient.addColorStop(0.8, "orange");
+leftPeakMeterGradient.addColorStop(1, "red");
+leftPeakMeterContext.fillStyle = leftPeakMeterGradient;
+
+var rightPeakMeterCanvas = document.getElementById("right-peak-meter");
+var rightPeakMeterContext = rightPeakMeterCanvas.getContext("2d");
+var rightPeakMeterGradient = rightPeakMeterContext.createLinearGradient(0, 0, 200, 0);
+rightPeakMeterGradient.addColorStop(0.5, "green");
+rightPeakMeterGradient.addColorStop(0.8, "orange");
+rightPeakMeterGradient.addColorStop(1, "red");
+rightPeakMeterContext.fillStyle = rightPeakMeterGradient;
+----
+
+The last stage is to compute the analysis on a regular basis, get the time domain data, find the peak volume, graph it and report when it goes over a certain limit.
+
+[source, javascript]
+----
+function analyse(){
+    leftChannelAnalyser.getFloatTimeDomainData(leftChannelTimeData);
+    rightChannelAnalyser.getFloatTimeDomainData(rightChannelTimeData);
+
+    var leftChannelPeak = findPeak(leftChannelTimeData);
+    var rightChannelPeak = findPeak(rightChannelTimeData);
+
+    leftPeakMeterContext.clearRect(0, 0, leftPeakMeterCanvas.width, leftPeakMeterCanvas.height);
+    leftPeakMeterContext.fillRect(0, 0, Math.min(leftPeakMeterCanvas.width, leftChannelPeak * 200), leftPeakMeterCanvas.height);
+
+    rightPeakMeterContext.clearRect(0, 0, rightPeakMeterCanvas.width, rightPeakMeterCanvas.height);
+    rightPeakMeterContext.fillRect(0, 0, Math.min(rightPeakMeterCanvas.width, rightChannelPeak * 200), rightPeakMeterCanvas.height);
+
+    if (leftChannelPeak >=1){
+        console.log("Left channel is too loud", leftChannelPeak);
+    }
+
+    if (rightChannelPeak >= 1){
+        console.log("Right channel is too loud", rightChannelPeak);
+    }
+
+    requestAnimationFrame( analyse );
+}
+analyse();
+};
+----
+
+== Et voila. 
+
+That is it, the code is super simple!!!
+
+Using an Analyser Node, you can also extract frequency domain information. So if you want to display a frequency spectrum or any other visuals, that is very simple to do. 
+Just get hold of the waveform data, plot stuff on canvases (or using WebGL) and off you go.
+
+
+
+
+
