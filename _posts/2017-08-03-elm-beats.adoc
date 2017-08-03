@@ -1,0 +1,129 @@
+---
+layout: post
+title:  "A simple drum machine with Elm and the Web Audio API"
+date:   2017-08-03
+categories: Elm JavaScript Audio
+disqus: true
+---
+
+In this post, I am going to talk about how I built http://www.soundcode.co.za/elm-beats-demo/[Elm Beats], a simple drum machine written in Elm with the Web Audio API.
+
+== Context
+
+A while ago, I came across this very interesting Web Application from Ableton (see https://learningmusic.ableton.com/).
+The app uses the Web Audio API to explain what sounds is, and the various approaches you can use to create music.
+What is even cooler is that the front-end for this web app uses a lot of https://www.reddit.com/r/elm/comments/69z2aa/learning_music_from_ableton_frontend_built_with/[Elm code].
+
+However, if you poke into the page source code (as I did), you will see that it mostly uses a bunch of JS libraries for the audio sequencing and event handling.
+
+While there is nothing wrong with that, as an experiment, I wanted to see how far I could get writing a simple audio app where I use:
+
+* Elm as much as possible
+* JavaScript as little as possible
+
+I eventually settled on building a drum machine, very similar in look and feel to the https://www.reddit.com/r/elm/comments/69z2aa/learning_music_from_ableton_frontend_built_with/[Ableton's version].
+
+== The Code
+
+The code for the app in on Github: https://github.com/kafecho/elm-beats
+
+== Approach
+
+In order to build the drum machine, I need to be able to play drum samples with as much precision as possible. This can be done with the Web Audio API which provides all the necessary mechanism for:
+
+* decoding samples files (in .mp3 or .wav format)
+* scheduling playback at very precise time in the future
+
+When the Elm app starts, it tells JavaScript (via a port) to decode a bunch of samples stored as .wav file. In JavaScript land, those samples end up as Audio Buffers which are ready for playback.
+
+The port code looks like:
+
+[source, Elm]
+----
+port loadSample : ( SampleAlias, SampleUrl ) -> Cmd msg
+----
+
+where: *SampleAlias* is a String to identify the sample, e.g. Kick and *SampleUrl* is a String which identifies the URL of the sample on the server.
+
+The corresponding JavaScript code is not complicated
+
+[source, JavaScript]
+----
+app.ports.loadSample.subscribe(function ( array ){
+  var key = array[0];
+  var url = array[1];
+
+  if (samples[key] == null){
+    var request = new XMLHttpRequest();
+    request.open('GET', url, true);
+    request.responseType = 'arraybuffer';
+    request.onload = function () {
+        if (request.status === 200) {
+            var audioData = request.response;
+            audioContext.decodeAudioData(audioData,
+                function (audioBuffer){
+                    samples[key]=audioBuffer;
+                    console.log("Loaded", key, url);
+                },
+                function (e){
+                    notifySampleLoadingFailed(url);
+                });
+        }else {
+            notifySampleLoadingFailed(url);
+        }
+    }
+
+    request.onerror = function () {
+        notifySampleLoadingFailed(url);
+    }
+
+    request.send();
+  }
+});
+----
+
+In a nutshell, the Elm code runs an infinite loop where it does the following:
+
+* It finds out (via a port subscription) what is the current value of the audio clock. This is happening many times per second (tied to the requestAnimationFrame cycle)
+* Once I know what the clock is at, I can work out if I have to schedule the playback of 1 or more samples in the near future
+* I then use an outgoing port to schedule the sample playback at a very precise point in time.
+
+The JavaScript ports are very simple (see https://github.com/kafecho/elm-beats/blob/master/src/index.js) and there is very little code. Most of the heavy lifting (sequencing, display, events) is 100% done in Elm.
+
+== Other features
+
+The app allows you to:
+
+* Play / pause at anytime
+* Clear the entire performance
+* Mute / un-mute a given track
+* Clear a given track
+* Share your creation via URL (with a hashtag which contains an encoding of the performance)
+
+== Observations
+
+Even though the JavaScript codebase is tiny, it is the *only place* where I got JavaScript runtime errors :-)
+
+While refactoring the code, I got plenty of compile-time errors in Elm, but the compiler was quite efficient at guiding my choices. Once the Elm code compiles, it is likely that is going to work.
+
+Elm's virtual DOM functions were really useful for creating the UI. The UI is basically a grid (an HTML table) where each cell controls a given semiquaver of a given instrument (the user can press on the cell to toggle the playback for that given note).
+
+So I have a function `createCell` which creates an HTML *td* element for a given note. That *td* component does the necessary event handling and is styled accordingly.
+
+I can `map` this function over a list of notes to give me the row for a given instrument.
+
+Via another `map` I repeat the same loop for all the instruments until I end up with a grid. Super simple function application.
+
+== Many thanks
+
+Many thanks to
+
+* To Ableton for putting together the impressive work at https://learningmusic.ableton.com
+* To @halfzebra and his create-elm-app tool https://www.npmjs.com/package/create-elm-app which I used to bootstrap my work.
+* The https://elmlang.herokuapp.com/[Elm Slack channel] for the very positive feedback and help.
+
+== Et voila.
+
+Have a play at http://www.soundcode.co.za/elm-beats-demo/ and let me know what you think.
+
+Happy jamming !!!!
